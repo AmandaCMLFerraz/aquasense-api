@@ -329,6 +329,21 @@ export class ConsumptionRecordsService implements OnModuleInit {
       newlyExcessive = excessiveConsumption && volumeBefore <= hourlyLimit;
     }
 
+    let newlyOverDailyLimit = false;
+    const dailyLimit = consumerUnit?.dailyConsumptionLimit ?? null;
+    if (dailyLimit !== null && dailyLimit > 0) {
+      const dayStart = new Date(reading.endConsumption);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayVolumeBefore = await this.getConsumerUnitVolumeInWindow(
+        device.consumerUnitId,
+        dayStart,
+        reading.endConsumption,
+      );
+      const overDailyLimit = dayVolumeBefore + volumeLiters > dailyLimit;
+      newlyOverDailyLimit = overDailyLimit && dayVolumeBefore <= dailyLimit;
+      excessiveConsumption = excessiveConsumption || overDailyLimit;
+    }
+
     let possibleLeak = false;
     let newlyLeaking = false;
     let streakMinutes = 0;
@@ -393,6 +408,15 @@ export class ConsumptionRecordsService implements OnModuleInit {
         'excessive_consumption',
         'Consumo elevado',
         `"${device.name}" ultrapassou ${hourlyLimit} L na última hora.`,
+      );
+    }
+
+    if (newlyOverDailyLimit) {
+      await this.notificationsService.createFromConsumptionRecord(
+        record,
+        'excessive_consumption',
+        'Limite diário ultrapassado',
+        `A unidade ultrapassou o limite diário de ${dailyLimit} L (último registro em "${device.name}").`,
       );
     }
 
