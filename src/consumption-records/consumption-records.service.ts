@@ -20,7 +20,6 @@ import {
 } from '../common/utils/approximate-flow-rate';
 import { buildHistoryRange, type HistoryPeriod } from './history-buckets.util';
 
-const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const IDLE_GAP_MS = 5 * 1000;
 
@@ -316,19 +315,6 @@ export class ConsumptionRecordsService implements OnModuleInit {
       .exec();
 
     let excessiveConsumption = false;
-    let newlyExcessive = false;
-    const hourlyLimit = consumerUnit?.hourlyConsumptionLimit ?? null;
-    if (hourlyLimit !== null) {
-      const windowStart = new Date(reading.endConsumption.getTime() - HOUR_MS);
-      const volumeBefore = await this.getConsumerUnitVolumeInWindow(
-        device.consumerUnitId,
-        windowStart,
-        reading.endConsumption,
-      );
-      excessiveConsumption = volumeBefore + volumeLiters > hourlyLimit;
-      newlyExcessive = excessiveConsumption && volumeBefore <= hourlyLimit;
-    }
-
     let newlyOverDailyLimit = false;
     const dailyLimit = consumerUnit?.dailyConsumptionLimit ?? null;
     if (dailyLimit !== null && dailyLimit > 0) {
@@ -341,7 +327,7 @@ export class ConsumptionRecordsService implements OnModuleInit {
       );
       const overDailyLimit = dayVolumeBefore + volumeLiters > dailyLimit;
       newlyOverDailyLimit = overDailyLimit && dayVolumeBefore <= dailyLimit;
-      excessiveConsumption = excessiveConsumption || overDailyLimit;
+      excessiveConsumption = overDailyLimit;
     }
 
     let possibleLeak = false;
@@ -401,15 +387,6 @@ export class ConsumptionRecordsService implements OnModuleInit {
       excessiveConsumption,
       possibleLeak,
     });
-
-    if (newlyExcessive) {
-      await this.notificationsService.createFromConsumptionRecord(
-        record,
-        'excessive_consumption',
-        'Consumo elevado',
-        `"${device.name}" ultrapassou ${hourlyLimit} L na última hora.`,
-      );
-    }
 
     if (newlyOverDailyLimit) {
       await this.notificationsService.createFromConsumptionRecord(

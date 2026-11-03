@@ -53,11 +53,6 @@ export class CreateConsumerUnitDto {
 
   @IsOptional()
   @IsNumber()
-  @Min(0)
-  hourlyConsumptionLimit?: number;
-
-  @IsOptional()
-  @IsNumber()
   @Min(1)
   leakDurationMinutes?: number;
 }
@@ -82,11 +77,6 @@ export class UpdateConsumerUnitDto {
   @IsNumber()
   @Min(0)
   dailyConsumptionLimit?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  hourlyConsumptionLimit?: number;
 
   @IsOptional()
   @IsNumber()

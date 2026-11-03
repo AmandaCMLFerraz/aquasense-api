@@ -48,9 +48,6 @@ export class ConsumerUnit {
   @Prop({ required: true, min: 0 })
   declare dailyConsumptionLimit: number;
 
-  @Prop({ required: true, min: 0, default: 100 })
-  declare hourlyConsumptionLimit: number;
-
   @Prop({ required: true, min: 1, default: 30 })
   declare leakDurationMinutes: number;
 

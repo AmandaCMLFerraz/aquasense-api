@@ -26,7 +26,6 @@ export interface ConsumerUnitSummary {
   address: Address;
   numberResidents: number;
   dailyConsumptionLimit: number;
-  hourlyConsumptionLimit: number;
   leakDurationMinutes: number;
   deviceCount: number;
 }
@@ -71,7 +70,6 @@ export class ConsumerUnitsService {
           address: unit.address,
           numberResidents: unit.numberResidents,
           dailyConsumptionLimit: unit.dailyConsumptionLimit,
-          hourlyConsumptionLimit: unit.hourlyConsumptionLimit,
           leakDurationMinutes: unit.leakDurationMinutes,
           deviceCount,
         };
@@ -123,7 +121,6 @@ export class ConsumerUnitsService {
       address: unit.address,
       numberResidents: unit.numberResidents,
       dailyConsumptionLimit: unit.dailyConsumptionLimit,
-      hourlyConsumptionLimit: unit.hourlyConsumptionLimit,
       leakDurationMinutes: unit.leakDurationMinutes,
       deviceCount,
     };

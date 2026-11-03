@@ -1,3 +1,6 @@
+// Os limites diários e os gráficos usam o "dia" do horário de Brasília, independentemente do fuso do servidor.
+process.env.TZ = 'America/Sao_Paulo';
+
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
