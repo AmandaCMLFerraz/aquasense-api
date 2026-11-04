@@ -30,7 +30,7 @@ function startOfWeek(date: Date): Date {
 }
 
 function buildDayRange(now: Date): HistoryRange {
-  const HOURS_PER_BUCKET = 3;
+  const HOURS_PER_BUCKET = 1;
   const todayStart = atMidnight(now);
   const buckets: BucketDef[] = [];
 
