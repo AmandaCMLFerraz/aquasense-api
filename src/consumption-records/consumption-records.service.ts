@@ -335,39 +335,30 @@ export class ConsumptionRecordsService implements OnModuleInit {
     let streakMinutes = 0;
     const leakLimitMinutes = consumerUnit?.leakDurationMinutes ?? null;
     if (leakLimitMinutes !== null && reading.pulses > 0) {
-      const lastIdleRecord = await this.consumptionRecordModel
-        .findOne({
-          deviceId: device._id,
-          volumeLiters: 0,
-          endConsumption: { $lte: reading.startConsumption },
-        })
-        .sort({ endConsumption: -1 })
-        .exec();
-      const streakFirstRecord = await this.consumptionRecordModel
-        .findOne({
+      const lookbackStart = new Date(
+        reading.startConsumption.getTime() - (leakLimitMinutes + 1) * 60000,
+      );
+      const recentRecords = await this.consumptionRecordModel
+        .find({
           deviceId: device._id,
           endConsumption: {
-            $gt: lastIdleRecord?.endConsumption ?? new Date(0),
+            $gte: lookbackStart,
             $lte: reading.startConsumption,
           },
         })
-        .sort({ startConsumption: 1 })
-        .exec();
-      const previousRecord = await this.consumptionRecordModel
-        .findOne({
-          deviceId: device._id,
-          endConsumption: { $lte: reading.startConsumption },
-        })
         .sort({ endConsumption: -1 })
         .exec();
-      const hasIdleGap =
-        !previousRecord ||
-        reading.startConsumption.getTime() -
-          previousRecord.endConsumption.getTime() >
-          IDLE_GAP_MS;
-      const streakStart = hasIdleGap
-        ? reading.startConsumption
-        : (streakFirstRecord?.startConsumption ?? reading.startConsumption);
+
+      let streakStart = reading.startConsumption;
+      for (const record of recentRecords) {
+        if (
+          streakStart.getTime() - record.endConsumption.getTime() >
+          IDLE_GAP_MS
+        ) {
+          break;
+        }
+        streakStart = record.startConsumption;
+      }
 
       streakMinutes =
         (reading.endConsumption.getTime() - streakStart.getTime()) / 60000;
