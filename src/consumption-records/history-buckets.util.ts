@@ -1,4 +1,4 @@
-export type HistoryPeriod = 'dia' | 'semana' | 'mes';
+export type HistoryPeriod = 'dia' | 'semana' | 'mes' | 'ano';
 
 export interface BucketDef {
   label: string;
@@ -93,6 +93,39 @@ function buildMonthRange(now: Date): HistoryRange {
   return { buckets, previousRangeStart, previousRangeEnd };
 }
 
+const MONTH_LABELS = [
+  'Jan',
+  'Fev',
+  'Mar',
+  'Abr',
+  'Mai',
+  'Jun',
+  'Jul',
+  'Ago',
+  'Set',
+  'Out',
+  'Nov',
+  'Dez',
+];
+
+function buildYearRange(now: Date): HistoryRange {
+  const year = now.getFullYear();
+  const buckets: BucketDef[] = MONTH_LABELS.map((label, month) => ({
+    label,
+    start: new Date(year, month, 1),
+    end: new Date(year, month + 1, 1),
+  }));
+
+  const previousRangeStart = new Date(year - 1, 0, 1);
+  const previousRangeEnd = new Date(
+    year - 1,
+    now.getMonth(),
+    now.getDate() + 1,
+  );
+
+  return { buckets, previousRangeStart, previousRangeEnd };
+}
+
 export function buildHistoryRange(
   period: HistoryPeriod,
   now = new Date(),
@@ -102,6 +135,8 @@ export function buildHistoryRange(
       return buildDayRange(now);
     case 'mes':
       return buildMonthRange(now);
+    case 'ano':
+      return buildYearRange(now);
     case 'semana':
     default:
       return buildWeekRange(now);

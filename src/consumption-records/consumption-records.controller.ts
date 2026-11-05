@@ -12,7 +12,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 
-const VALID_PERIODS: HistoryPeriod[] = ['dia', 'semana', 'mes'];
+const VALID_PERIODS: HistoryPeriod[] = ['dia', 'semana', 'mes', 'ano'];
 
 function parseConsumerUnitId(consumerUnitId?: string): string | undefined {
   if (!consumerUnitId) {

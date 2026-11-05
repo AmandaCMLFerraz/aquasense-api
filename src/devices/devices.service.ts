@@ -131,7 +131,7 @@ export class DevicesService {
       consumerUnitName: consumerUnit?.name ?? '—',
       calibrationFactor: device.calibrationFactor,
       installedAt: device.createdAt ?? device._id.getTimestamp(),
-      weekConsumption: Number(weekConsumption.toFixed(1)),
+      weekConsumption: Number(weekConsumption.toFixed(2)),
       flowHistory,
     };
   }

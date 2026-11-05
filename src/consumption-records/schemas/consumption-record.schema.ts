@@ -41,3 +41,5 @@ export class ConsumptionRecord {
 
 export const ConsumptionRecordSchema =
   SchemaFactory.createForClass(ConsumptionRecord);
+
+ConsumptionRecordSchema.index({ deviceId: 1, endConsumption: 1 });

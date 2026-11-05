@@ -171,7 +171,7 @@ export class ConsumptionRecordsService implements OnModuleInit {
       flowRates.reduce((sum, rate) => sum + rate, 0).toFixed(2),
     );
 
-    const weeklyAverageLiters = Number((thisWeekLiters / 7).toFixed(1));
+    const weeklyAverageLiters = Number((thisWeekLiters / 7).toFixed(2));
     const weeklyChangePercent =
       previousWeekLiters > 0
         ? Number(
@@ -185,11 +185,11 @@ export class ConsumptionRecordsService implements OnModuleInit {
     const daysElapsedThisMonth = new Date().getDate();
     const monthSavingsLiters = Math.max(
       0,
-      Number((dailyLimit * daysElapsedThisMonth - monthLiters).toFixed(1)),
+      Number((dailyLimit * daysElapsedThisMonth - monthLiters).toFixed(2)),
     );
 
     return {
-      todayLiters: Number(todayLiters.toFixed(1)),
+      todayLiters: Number(todayLiters.toFixed(2)),
       dailyLimit,
       currentFlowRate,
       weeklyAverageLiters,
@@ -214,27 +214,23 @@ export class ConsumptionRecordsService implements OnModuleInit {
       previousRangeEnd,
     } = buildHistoryRange(period, referenceDate);
 
-    const bucketResults = await Promise.all(
-      bucketDefs.map(async (bucket) => {
-        const liters = await this.sumVolumeLiters({
-          deviceId: { $in: deviceIds },
-          endConsumption: { $gte: bucket.start, $lt: bucket.end },
-        });
-        const thresholdLiters =
-          dailyLimit *
-          ((bucket.end.getTime() - bucket.start.getTime()) / DAY_MS);
-
-        return { label: bucket.label, liters, thresholdLiters };
+    const [litersByBucket, previousTotal] = await Promise.all([
+      this.sumVolumeLitersByBucket(deviceIds, bucketDefs),
+      this.sumVolumeLiters({
+        deviceId: { $in: deviceIds },
+        endConsumption: { $gte: previousRangeStart, $lt: previousRangeEnd },
       }),
-    );
+    ]);
 
-    const previousTotal = await this.sumVolumeLiters({
-      deviceId: { $in: deviceIds },
-      endConsumption: { $gte: previousRangeStart, $lt: previousRangeEnd },
-    });
+    const bucketResults = bucketDefs.map((bucket) => ({
+      label: bucket.label,
+      liters: litersByBucket.get(bucket.start.getTime()) ?? 0,
+      thresholdLiters:
+        dailyLimit * ((bucket.end.getTime() - bucket.start.getTime()) / DAY_MS),
+    }));
 
     const totalLiters = Number(
-      bucketResults.reduce((sum, bucket) => sum + bucket.liters, 0).toFixed(1),
+      bucketResults.reduce((sum, bucket) => sum + bucket.liters, 0).toFixed(2),
     );
     const changePercent =
       previousTotal > 0
@@ -249,7 +245,7 @@ export class ConsumptionRecordsService implements OnModuleInit {
     );
     const buckets: HistoryBucket[] = bucketResults.map((bucket) => ({
       label: bucket.label,
-      liters: Number(bucket.liters.toFixed(1)),
+      liters: Number(bucket.liters.toFixed(2)),
       status:
         bucket.liters > 0 && bucket.liters === maxLiters
           ? 'peak'
@@ -412,6 +408,44 @@ export class ConsumptionRecordsService implements OnModuleInit {
       deviceId: { $in: devices.map((device) => device._id) },
       endConsumption: { $gt: windowStart, $lte: windowEnd },
     });
+  }
+
+  private async sumVolumeLitersByBucket(
+    deviceIds: Types.ObjectId[],
+    bucketDefs: { start: Date; end: Date }[],
+  ): Promise<Map<number, number>> {
+    const totals = new Map<number, number>();
+    if (bucketDefs.length === 0 || deviceIds.length === 0) return totals;
+
+    const boundaries = [
+      ...bucketDefs.map((bucket) => bucket.start),
+      bucketDefs[bucketDefs.length - 1].end,
+    ];
+
+    const rows = await this.consumptionRecordModel.aggregate<{
+      _id: Date;
+      total: number;
+    }>([
+      {
+        $match: {
+          deviceId: { $in: deviceIds },
+          endConsumption: { $gte: boundaries[0], $lt: boundaries.at(-1) },
+        },
+      },
+      {
+        $bucket: {
+          groupBy: '$endConsumption',
+          boundaries,
+          default: 'other',
+          output: { total: { $sum: '$volumeLiters' } },
+        },
+      },
+    ]);
+
+    for (const row of rows) {
+      if (row._id instanceof Date) totals.set(row._id.getTime(), row.total);
+    }
+    return totals;
   }
 
   private async sumVolumeLiters(
